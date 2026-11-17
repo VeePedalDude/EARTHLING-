@@ -11,7 +11,7 @@ report numbers.
 **Rules** (full text in the repo's `AGENTS.md`):
 - **Think first.** State your assumptions (board, sample rate, pins). If a request has two readings, ask which one is meant.
 - **Define done as a number** before you edit, for example "clicks on sweep/sine_1k: 35 → 0".
-- **Write less.** Use DaisySP before writing your own DSP. No one-use abstractions. Deleting code counts as a fix.
+- **Write less.** Use the DaisySP bundled with DaisyDuino (no `daisysp.h` include, no standalone DaisySP; `OnePole`, `LadderFilter`, `Wavefolder`, `GranularPlayer` and `Soap` aren't in it) before writing your own DSP. No one-use abstractions. Deleting code counts as a fix.
 - **Surgical changes.** Touch only what the fix needs. `daisyrig scope old new` must show 0 whitespace-only lines.
 
 ## 0. Get the rig
@@ -76,7 +76,7 @@ After every change:
 - Re-run the whole suite, not only the case you fixed. Earlier tests must still pass.
 - Report each fix with numbers: the metric, its value before, its value after, and the units (clicks/run, dBFS, THD %, NaN count, KB, host CPU %).
 - For refactors that should not change the sound, check that `./daisyrig null old.wav new.wav` shows `identical: true`. If it doesn't, explain the difference in dB.
-- Typical fixes: smooth control reads (`fonepole`), read controls in `loop()` and pass them through volatiles, interpolate delay reads, cap feedback below 1 with a soft clip in the loop, crossfade bypass over about 10 ms, write every output channel on every path, put large buffers in `DSY_SDRAM_BSS` and clear them in `setup()`, and use `f`-suffixed float literals (avoid `-Wdouble-promotion`).
+- Typical fixes (DaisyDuino's bundled DaisySP only): smooth control reads (`fonepole`), read controls in `loop()` and pass them through volatiles, interpolate delay reads, cap feedback below 1 with a soft clip in the loop, crossfade bypass over about 10 ms, write every output channel on every path, put large buffers in `DSY_SDRAM_BSS` and clear them in `setup()`, and use `f`-suffixed float literals (avoid `-Wdouble-promotion`).
 
 ## 5. Deliver a clean file
 

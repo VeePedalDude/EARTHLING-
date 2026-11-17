@@ -18,7 +18,13 @@ can see.
 - You're done only when `daisyrig test ... --baseline work/before.json` shows the criterion met and nothing else got worse. Loop until it does. A fix that has only been compiled hasn't been tested.
 
 ## 3. Lazy senior dev: write less
-- Use what already exists before you write anything. DaisySP has filters (`Svf`, `OnePole`, `Biquad`), smoothing (`fonepole`), `DelayLine` with interpolation, oscillators, `ReverbSc`, `Overdrive`, `Compressor` and more. Don't hand-roll one of these without a measured reason (CPU, sound, or memory).
+- Use what already exists before you write anything, which means the DaisySP copy that comes inside DaisyDuino. Examples: `Svf`, `Tone`/`ATone`, `Biquad`, `MoogLadder`, `fonepole`, `DelayLine`, `Oscillator`, `ReverbSc`, `Overdrive`, `Fold` and `Compressor`. Don't hand-roll one of these without a measured reason (CPU, sound, or memory).
+- **DaisySP under DaisyDuino:**
+  - `#include "DaisyDuino.h"` is the only include. It already opens `namespace daisysp`.
+  - Never add `#include "daisysp.h"`, and never install the standalone DaisySP library. That header doesn't exist under DaisyDuino.
+  - The bundled copy is DaisyDuino 1.7.0's (March 2025). It is missing `OnePole`, `LadderFilter`, `Wavefolder`, `GranularPlayer` and `Soap`.
+  - Only use a module after `daisyrig build` (or `hwcheck`) compiles it. If you need a missing module, copy its `.h`/`.cpp` into the sketch folder and keep the MIT header.
+  - libDaisy code (`DaisySeed hw;`, `hw.Init()`, Makefile projects) is a different framework. Port it; don't paste it in.
 - Use the simplest structure that works: no class or template for something used once, no config knobs nobody asked for, and no error handling for things that can't happen in a fixed-rate callback.
 - If 200 lines could be 50, make it 50. Deleting code is a valid fix.
 - If you take a deliberate shortcut, mark it with `// SHORTCUT: <why> - revisit if <condition>` so it can be found later.

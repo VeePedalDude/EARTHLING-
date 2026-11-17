@@ -186,6 +186,26 @@ def preprocess(sketch, out_cpp, prototypes=True):
     return sk_dir
 
 
+# DaisySP classes that exist upstream but not in the copy bundled with DaisyDuino 1.7.0
+NOT_IN_DAISYDUINO = {"OnePole": "use fonepole() or Tone/ATone", "LadderFilter": "use MoogLadder",
+                     "Wavefolder": "use Fold", "GranularPlayer": "port granularplayer.h/.cpp into the sketch folder",
+                     "Soap": "port soap.h/.cpp into the sketch folder"}
+
+
+def explain(err):
+    """Turn common DaisyDuino/DaisySP compile errors into a plain hint (same failures happen on hardware)."""
+    hints = []
+    if re.search(r"daisysp\.h: No such file", err):
+        hints.append('DaisyDuino has no "daisysp.h": DaisySP comes with #include "DaisyDuino.h" '
+                     "(namespace already open). Remove the daisysp.h include. Don't install standalone DaisySP.")
+    for cls, alt in NOT_IN_DAISYDUINO.items():
+        if re.search(rf"['‘]{cls}['’] (does not name a type|was not declared)", err):
+            hints.append(f"{cls} is in current DaisySP but not in DaisyDuino's bundled copy: {alt}.")
+    if re.search(r"(daisy_seed|daisy_petal|daisy_pod)\.h: No such file", err) or "DaisySeed" in err:
+        hints.append("That is libDaisy (Makefile/C++) code, not DaisyDuino: use DaisyHardware hw = DAISY.init(...).")
+    return ("\n\nhint: " + "\nhint: ".join(hints)) if hints else ""
+
+
 def build(sketch, out_bin=None, profile="release", extra_flags=(), workdir=None):
     """Compile a sketch. Returns dict(bin, warnings[list], objects[list], log)."""
     dsp, rig = runtime_libs(profile)
@@ -208,13 +228,13 @@ def build(sketch, out_bin=None, profile="release", extra_flags=(), workdir=None)
             break
         attempt_err = attempt_err or r.stderr
     else:
-        raise RuntimeError("sketch failed to compile:\n" + attempt_err)
+        raise RuntimeError("sketch failed to compile:\n" + attempt_err + explain(attempt_err))
     for c in cpps:
         o = wd / f"{c.stem}.o"
         r = subprocess.run([CXX, *BASE_FLAGS, *flags, *_inc(), "-c", str(c), "-o", str(o)],
                            capture_output=True, text=True)
         if r.returncode:
-            raise RuntimeError(f"{c} failed to compile:\n{r.stderr}")
+            raise RuntimeError(f"{c} failed to compile:\n{r.stderr}" + explain(r.stderr))
         logs.append(r.stderr)
         objs.append(o)
     link = [CXX, *PROFILES[profile], *map(str, objs), str(rig), str(dsp), "-lm", "-o", str(out_bin)]

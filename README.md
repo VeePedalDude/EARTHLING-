@@ -27,7 +27,7 @@ numbers instead of memory.
 
 | Part | How it runs |
 |---|---|
-| DaisySP (every module) | **real** DaisySP source from DaisyDuino, compiled for the host |
+| DaisySP | **real** source: the copy bundled in DaisyDuino 1.7.0, exactly what the Arduino IDE builds. It is older than standalone DaisySP: no `OnePole`, `LadderFilter`, `Wavefolder`, `GranularPlayer` or `Soap`, and no `daisysp.h` include. The rig fails on these the same way the hardware build does, and prints a hint. |
 | `Switch`, `AnalogControl`, `Encoder`, `Led`, `GateIn`, `Parameter` | **real** DaisyDuino classes, reading simulated pins |
 | `DAISY.init/begin`, `DaisyHardware` (Seed, Pod, Petal, Patch) | re-implemented. Same API, and the callback is driven from WAV input |
 | Arduino core (`analogRead`, `digitalRead`, `millis`, `delay`, `Serial`, `attachInterrupt`, `String` ...) | simulated with a clock that runs on audio time |

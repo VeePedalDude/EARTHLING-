@@ -48,6 +48,11 @@ def main():
     y[24000:] = 0.25 * np.sin(2 * np.pi * 1000 * t[24000:] + 1.0)
     check(len(A.click_events(y, sr)) == 1, "phase jump: one click")
 
+    print("DaisySP-under-DaisyDuino hints")
+    hint = B.explain("x.ino:2:10: fatal error: daisysp.h: No such file or directory\n"
+                     "x.ino:3:1: error: 'OnePole' does not name a type")
+    check("DaisyDuino.h" in hint and "fonepole" in hint, "daisysp.h include and OnePole explained")
+
     print("scope (surgical-change check)")
     import subprocess
     src = ROOT / "examples/sketches/TremDelayFixed/TremDelayFixed.ino"
