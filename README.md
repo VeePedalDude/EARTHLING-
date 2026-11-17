@@ -57,6 +57,7 @@ daisyrig compare before.json after.json
 daisyrig hwcheck SKETCH                # real arm-gcc build: flash / RAM / ARM warnings
 daisyrig signals --out dir [--sr 48000]
 daisyrig lint FILE...                  # leftover rig hooks / host-only code before delivery
+daisyrig scope old.ino new.ino [--strict]   # diff size + whitespace-only churn (surgical-change check)
 ```
 
 `SKETCH` is a sketch folder (Arduino layout, all `.ino` files merged and
@@ -165,6 +166,19 @@ Linux or macOS with g++ (C++17), Python 3.9+, numpy and scipy, and git.
 `--hw` needs network access to GitHub. It downloads arduino-cli and the
 STMicroelectronics STM32 core into the normal Arduino data folder, which it
 shares with the Arduino IDE.
+
+## Build rules
+
+`AGENTS.md`, which `CLAUDE.md` imports, sets the rules for anyone changing a
+sketch or the rig. They adapt the Karpathy-inspired guidelines (think first,
+simplicity, surgical changes, goal-driven execution) and Ponytail's
+write-less stance to Daisy firmware:
+- assumptions stated up front
+- "done" defined as a measured number
+- DaisySP before custom DSP
+- minimal diffs, checked with `daisyrig scope`
+- hard firmware rules that `daisyrig test` enforces
+- verified, inferred and not-fixed results reported separately
 
 ## Using it with Claude
 

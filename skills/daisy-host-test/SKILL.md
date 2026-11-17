@@ -8,6 +8,12 @@ description: Test Arduino-IDE (DaisyDuino) Daisy Seed audio firmware by building
 Never judge DSP firmware by reading it. Build it, run it, measure it, and
 report numbers.
 
+**Rules** (full text in the repo's `AGENTS.md`):
+- **Think first.** State your assumptions (board, sample rate, pins). If a request has two readings, ask which one is meant.
+- **Define done as a number** before you edit, for example "clicks on sweep/sine_1k: 35 → 0".
+- **Write less.** Use DaisySP before writing your own DSP. No one-use abstractions. Deleting code counts as a fix.
+- **Surgical changes.** Touch only what the fix needs. `daisyrig scope old new` must show 0 whitespace-only lines.
+
 ## 0. Get the rig
 
 ```bash
@@ -66,6 +72,7 @@ After every change:
 ./daisyrig test MyPedal --board terrarium --baseline work/before.json
 ```
 
+- Make one concern per change. Run `./daisyrig scope before.ino after.ino` and keep the diff minimal, with 0 whitespace-only lines.
 - Re-run the whole suite, not only the case you fixed. Earlier tests must still pass.
 - Report each fix with numbers: the metric, its value before, its value after, and the units (clicks/run, dBFS, THD %, NaN count, KB, host CPU %).
 - For refactors that should not change the sound, check that `./daisyrig null old.wav new.wav` shows `identical: true`. If it doesn't, explain the difference in dB.
@@ -74,6 +81,7 @@ After every change:
 ## 5. Deliver a clean file
 
 - Remove debug taps, then run `./daisyrig lint MyPedal/MyPedal.ino`. It must report 0 lines.
+- Run a final `./daisyrig scope original.ino MyPedal.ino` and include its numbers in the hand-off.
 - The final file must compile with no sketch warnings: the report's "Compiler warnings in sketch: 0" (host `-Wall -Wextra`). With `--hw`, the arm-gcc warnings must also be 0.
 - Deliver the `.ino` itself, plus the before→after table.
 

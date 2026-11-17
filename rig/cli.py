@@ -118,6 +118,29 @@ def cmd_compare(a):
 DEBUG_PAT = re.compile(r"rig_probe|rig_event|DAISYRIG|std::cout|std::cerr|fprintf\s*\(\s*stderr|#include\s*<iostream>")
 
 
+def cmd_scope(a):
+    """Surgical-change check: how big is the diff, and how much is pure whitespace churn."""
+    import difflib
+    old = Path(a.old).read_text(errors="replace").splitlines()
+    new = Path(a.new).read_text(errors="replace").splitlines()
+    added = removed = hunks = 0
+    for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, old, new, autojunk=False).get_opcodes():
+        if tag != "equal":
+            hunks += 1
+            removed += i2 - i1
+            added += j2 - j1
+    norm = lambda ls: [" ".join(l.split()) for l in ls]
+    sm = difflib.SequenceMatcher(None, norm(old), norm(new), autojunk=False)
+    real = sum(max(i2 - i1, j2 - j1) for t, i1, i2, j1, j2 in sm.get_opcodes() if t != "equal")
+    churn = max(0, max(added, removed) - real)
+    out = {"hunks": hunks, "lines_added": added, "lines_removed": removed,
+           "net_lines": added - removed, "whitespace_only_lines": churn}
+    print(json.dumps(out, indent=2))
+    if churn:
+        print(f"{churn} line(s) changed only in whitespace/formatting: revert them (surgical changes)")
+    sys.exit(1 if churn and a.strict else 0)
+
+
 def cmd_lint(a):
     """Delivery check: no rig hooks / host-only code left in the file."""
     bad = 0
@@ -195,6 +218,12 @@ def main(argv=None):
     s.add_argument("before")
     s.add_argument("after")
     s.set_defaults(fn=cmd_compare)
+
+    s = sub.add_parser("scope", help="diff size + whitespace-only churn between two versions")
+    s.add_argument("old")
+    s.add_argument("new")
+    s.add_argument("--strict", action="store_true", help="exit 1 if any whitespace-only churn")
+    s.set_defaults(fn=cmd_scope)
 
     s = sub.add_parser("lint", help="check a file for leftover rig hooks before delivery")
     s.add_argument("files", nargs="+")

@@ -48,6 +48,15 @@ def main():
     y[24000:] = 0.25 * np.sin(2 * np.pi * 1000 * t[24000:] + 1.0)
     check(len(A.click_events(y, sr)) == 1, "phase jump: one click")
 
+    print("scope (surgical-change check)")
+    import subprocess
+    src = ROOT / "examples/sketches/TremDelayFixed/TremDelayFixed.ino"
+    ws = tmp / "ws.ino"
+    ws.write_text(src.read_text().replace("\n  ", "\n    "))
+    r = subprocess.run([sys.executable, str(ROOT / "daisyrig"), "scope", str(src), str(ws), "--strict"],
+                       capture_output=True, text=True)
+    check(r.returncode == 1 and '"whitespace_only_lines": 0' not in r.stdout, "reindent flagged as churn")
+
     print("TremDelayBuggy (must FAIL with the planted bugs)")
     rb = T.run_suite(ROOT / "examples/sketches/TremDelayBuggy", tmp / "buggy", board="terrarium",
                      ctls=["noon", "min", "footswitch"])
