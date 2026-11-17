@@ -144,6 +144,11 @@ appears at exactly t = 1.000 s, where the buffer wraps. The 188 KB buffer sits
 in SRAM. The fixed version has zero FAIL findings, the buffer is in SDRAM, the
 sanitizers are clean, and sweeping every pot produces zero clicks.
 
+One WARN remains on the fixed version, and it is real: under the extreme
+`twiddle` preset, the fast delay-time modulation gives Doppler chirps (16 flags).
+Freezing POT1 in a copy of the sketch drops it to 1, which bisects the cause to
+the delay time. Example reports are in `examples/reports/`.
+
 If you delete the SDRAM-clearing loop from the fixed version, the rig reports
 7294 NaN samples on silent input. Random SDRAM at boot is a classic first-flash
 bug.
