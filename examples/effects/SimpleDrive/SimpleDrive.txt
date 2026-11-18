@@ -1,47 +1,76 @@
-SimpleDrive - soft-clipping overdrive for the PedalPCB Terrarium
-=================================================================
+// SimpleDrive - soft-clipping overdrive for the PedalPCB Terrarium (Daisy Seed)
+// Arduino IDE + DaisyDuino. Single file: no extra headers needed.
+//
+// KNOB_1 (A1)  Drive      KNOB_2 (A2)  Tone      KNOB_3 (A3)  Level
+// SWITCH_1 (D10)  ON = asymmetric clipping (warmer, more even harmonics)
+// FOOTSWITCH_1 (D25)  bypass, LED_1 (D22) lit when the effect is on
+#include "DaisyDuino.h"
 
-Platform: Daisy Seed on a PedalPCB Terrarium, Arduino IDE + DaisyDuino.
-Single file: SimpleDrive.ino needs no extra headers.
+const uint8_t PIN_DRIVE = A1, PIN_TONE = A2, PIN_LEVEL = A3;
+const uint8_t PIN_SW1 = D10, PIN_FS1 = D25, PIN_LED1 = D22;
 
-CONTROLS
-  Knob 1 (A1)        Drive    clean-ish boost up to about +36 dB into the clipper
-  Knob 2 (A2)        Tone     post-clip lowpass, about 600 Hz to 8 kHz
-  Knob 3 (A3)        Level    output volume (full = just under full scale)
-  Toggle 1 (D10)     ON = asymmetric clipping (warmer, more even harmonics)
-  Footswitch 1 (D25) bypass on/off, with a 10 ms crossfade (no pop)
-  LED 1 (D22)        lit while the effect is on
-  Knobs 4-6, toggles 2-4, footswitch 2: unused
+DaisyHardware hw;
+Switch fs1, sw1;
+Tone tone_lp;     // post-clip lowpass
+Tone pre_lp;      // pre-clip lowpass: tames fizz and aliasing
 
-SIGNAL FLOW
-  in[0] -> drive gain -> 7 kHz pre-filter -> tanh soft clipper
-        -> (asymmetric: bias + rescale) -> slow DC remover -> tone lowpass
-        -> level -> bypass crossfade -> out[0] (copied to out[1])
+// written in loop(), read in the callback
+volatile float k_drive = 0.5f, k_tone = 0.5f, k_level = 0.5f;
+volatile bool effect_on = true;
 
-HOW IT WORKS
-  - Drive multiplies the signal, then tanh() squashes it smoothly toward +/-1.
-    More gain means more of the waveform is squashed, so it sounds more distorted.
-  - The 7 kHz pre-filter keeps the clipper from making harsh fizz and aliasing.
-  - Asymmetric mode adds a 0.3 bias before tanh, so the top and bottom of the wave
-    clip differently. The code removes the offset and rescales back to +/-1. A very
-    slow (~0.8 Hz) DC remover cleans up what is left without tilting low notes.
-  - Knobs are read in loop() and smoothed per sample inside the audio callback,
-    so turning them makes no zipper noise.
+float gain = 1.0f, level = 0.5f, tone_hz = 3000.0f, mix = 1.0f;
+float dc_est = 0.0f;   // slow DC tracker (asymmetric mode leaves DC)
 
-INSTALL / UPLOAD
-  1. Put SimpleDrive.ino in a folder named SimpleDrive.
-  2. Arduino IDE: Tools > Board > Generic STM32H7 Series; Board part number > Daisy Seed;
-     Upload method > STM32CubeProgrammer (DFU). Library: DaisyDuino.
-  3. Hold BOOT on the Seed, tap RESET, release BOOT, then click Upload.
+void AudioCallback(float **in, float **out, size_t size) {
+  fs1.Debounce();
+  sw1.Debounce();
+  if (fs1.RisingEdge()) effect_on = !effect_on;
+  const bool asym = sw1.Pressed();
 
-THINGS TO TRY
-  - Make it louder: change 0.9f in target_level (keep it at or below 1.0f).
-  - More or less gain range: change 59.0f in target_gain.
-  - Different clip shape: replace tanhf(x) with x / (1.0f + fabsf(x)) (softer, cheaper).
+  const float target_gain = 1.0f + 59.0f * k_drive * k_drive;   // 0 .. +35.6 dB
+  const float target_level = 0.9f * k_level;    // clipper peaks at 1.0
+  fonepole(tone_hz, 600.0f + 7400.0f * k_tone * k_tone, 0.05f);
+  tone_lp.SetFreq(tone_hz);
+  const float mix_target = effect_on ? 1.0f : 0.0f;
 
-TEST STATUS (daisyrig, --board terrarium --hw)
-  Passed: no failures, compiles for the Daisy (about 56 KB flash, 43%), sanitizers clean,
-  no clipping at any knob or toggle setting.
-  Known: under hard drive, notes below about 150 Hz become near-square waves. The rig
-  flags their edges as possible clicks. That is the distortion itself, and it sits
-  below the guitar's low E (82 Hz).
+  for (size_t i = 0; i < size; i++) {
+    fonepole(gain, target_gain, 0.002f);     // ~10 ms, no zipper noise
+    fonepole(level, target_level, 0.002f);
+    fonepole(mix, mix_target, 0.002f);       // ~10 ms bypass crossfade
+
+    float dry = in[0][i];
+    float x = dry * gain;
+    x = pre_lp.Process(x);
+    if (asym) x += 0.3f;                     // bias -> asymmetric clipping
+    float y = tanhf(x);
+    if (asym) y = (y - 0.2913f) * 0.7744f;   // remove offset (tanh 0.3), rescale to +-1
+    fonepole(dc_est, y, 0.0001f);            // ~0.8 Hz: no tilt even on sub-bass
+    y -= dc_est;
+    y = tone_lp.Process(y) * level;
+
+    out[0][i] = dry + mix * (y - dry);
+    out[1][i] = out[0][i];                   // Terrarium is mono; harmless copy
+  }
+}
+
+void setup() {
+  hw = DAISY.init(DAISY_SEED, AUDIO_SR_48K);
+  const float sr = DAISY.get_samplerate();
+  const float block_rate = sr / (float)DAISY.AudioBlockSize();
+  fs1.Init(block_rate, true, PIN_FS1, INPUT_PULLUP);
+  sw1.Init(block_rate, true, PIN_SW1, INPUT_PULLUP);
+  pinMode(PIN_LED1, OUTPUT);
+  tone_lp.Init(sr);
+  pre_lp.Init(sr);
+  float pre_hz = 7000.0f;
+  pre_lp.SetFreq(pre_hz);
+  DAISY.begin(AudioCallback);
+}
+
+void loop() {
+  k_drive = analogRead(PIN_DRIVE) / 1023.0f;
+  k_tone = analogRead(PIN_TONE) / 1023.0f;
+  k_level = analogRead(PIN_LEVEL) / 1023.0f;
+  digitalWrite(PIN_LED1, effect_on ? HIGH : LOW);
+  delay(1);
+}
