@@ -1,3 +1,9 @@
+// -----------------------------------------------------------------------------
+// Template by VeePedalDude - veepedaldude@gmail.com
+// Free and open source, shared with the DIY pedal community for the love of the
+// craft. I make nothing from it. Questions, ideas, or just want to connect?
+// Email me anytime.
+// -----------------------------------------------------------------------------
 // TerrariumTemplate - starting point for a PedalPCB Terrarium effect (Arduino IDE + DaisyDuino).
 // Board: Generic STM32H7 Series > Daisy Seed. Upload: STM32CubeProgrammer (DFU).
 //

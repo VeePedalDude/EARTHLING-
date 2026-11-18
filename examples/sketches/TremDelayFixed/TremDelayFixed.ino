@@ -1,3 +1,9 @@
+// -----------------------------------------------------------------------------
+// Created by VeePedalDude - veepedaldude@gmail.com
+// Free and open source, shared with the DIY pedal community for the love of the
+// craft. I make nothing from it. Questions, ideas, or just want to connect?
+// Email me anytime.
+// -----------------------------------------------------------------------------
 // TremDelayFixed - the repaired version of TremDelayBuggy.
 //
 // Terrarium: POT1 delay time, POT2 feedback, POT3 trem rate, POT4 trem depth,

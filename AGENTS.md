@@ -54,6 +54,7 @@ can see.
 
 ## 5c. Sketch layout (so a novice can tweak it)
 Every effect is one `.ino`, laid out top to bottom like this. `examples/effects/SimpleDrive` is the reference.
+0. **Credit note**: effects made for this repo open with the VeePedalDude contact note (copy it from SimpleDrive).
 1. **Header comment**: the controls (knob/switch → job) and a one-line signal flow with numbered stages.
 2. **TWEAK ZONE**: every number someone might want to change, grouped by stage, as named `const`s with a **unit and a safe range** in the comment.
    - Times are in ms and frequencies in Hz. Convert to coefficients in code (`CoefFromMs`), so users never edit raw coefficients.

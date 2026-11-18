@@ -1,3 +1,9 @@
+// -----------------------------------------------------------------------------
+// Created by VeePedalDude - veepedaldude@gmail.com
+// Free and open source, shared with the DIY pedal community for the love of the
+// craft. I make nothing from it. Questions, ideas, or just want to connect?
+// Email me anytime.
+// -----------------------------------------------------------------------------
 // TremDelayBuggy - Terrarium tremolo + delay with deliberate, typical bugs.
 // Used to show what `daisyrig test` catches. See TremDelayFixed for the repair.
 //
