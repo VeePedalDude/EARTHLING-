@@ -1,0 +1,47 @@
+SimpleDrive - soft-clipping overdrive for the PedalPCB Terrarium
+=================================================================
+
+Platform: Daisy Seed on a PedalPCB Terrarium, Arduino IDE + DaisyDuino.
+Single file: SimpleDrive.ino needs no extra headers.
+
+CONTROLS
+  Knob 1 (A1)        Drive    clean-ish boost up to about +36 dB into the clipper
+  Knob 2 (A2)        Tone     post-clip lowpass, about 600 Hz to 8 kHz
+  Knob 3 (A3)        Level    output volume (full = just under full scale)
+  Toggle 1 (D10)     ON = asymmetric clipping (warmer, more even harmonics)
+  Footswitch 1 (D25) bypass on/off, with a 10 ms crossfade (no pop)
+  LED 1 (D22)        lit while the effect is on
+  Knobs 4-6, toggles 2-4, footswitch 2: unused
+
+SIGNAL FLOW
+  in[0] -> drive gain -> 7 kHz pre-filter -> tanh soft clipper
+        -> (asymmetric: bias + rescale) -> slow DC remover -> tone lowpass
+        -> level -> bypass crossfade -> out[0] (copied to out[1])
+
+HOW IT WORKS
+  - Drive multiplies the signal, then tanh() squashes it smoothly toward +/-1.
+    More gain means more of the waveform is squashed, so it sounds more distorted.
+  - The 7 kHz pre-filter keeps the clipper from making harsh fizz and aliasing.
+  - Asymmetric mode adds a 0.3 bias before tanh, so the top and bottom of the wave
+    clip differently. The code removes the offset and rescales back to +/-1. A very
+    slow (~0.8 Hz) DC remover cleans up what is left without tilting low notes.
+  - Knobs are read in loop() and smoothed per sample inside the audio callback,
+    so turning them makes no zipper noise.
+
+INSTALL / UPLOAD
+  1. Put SimpleDrive.ino in a folder named SimpleDrive.
+  2. Arduino IDE: Tools > Board > Generic STM32H7 Series; Board part number > Daisy Seed;
+     Upload method > STM32CubeProgrammer (DFU). Library: DaisyDuino.
+  3. Hold BOOT on the Seed, tap RESET, release BOOT, then click Upload.
+
+THINGS TO TRY
+  - Make it louder: change 0.9f in target_level (keep it at or below 1.0f).
+  - More or less gain range: change 59.0f in target_gain.
+  - Different clip shape: replace tanhf(x) with x / (1.0f + fabsf(x)) (softer, cheaper).
+
+TEST STATUS (daisyrig, --board terrarium --hw)
+  Passed: no failures, compiles for the Daisy (about 56 KB flash, 43%), sanitizers clean,
+  no clipping at any knob or toggle setting.
+  Known: under hard drive, notes below about 150 Hz become near-square waves. The rig
+  flags their edges as possible clicks. That is the distortion itself, and it sits
+  below the guitar's low E (82 Hz).

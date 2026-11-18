@@ -48,6 +48,13 @@ def click_events(x, sr, ratio=3.0, floor=2e-4, blk_ms=2.0, nb=8):
     return out
 
 
+def distorted(inp, out):
+    """True if out is far from a scaled copy of inp (crest factor collapsed by clipping)."""
+    ci = np.max(np.abs(inp)) / (rms(inp) + EPS)
+    co = np.max(np.abs(out)) / (rms(out) + EPS)
+    return co < 0.9 * ci
+
+
 def thd(x, sr, f0):
     """THD (%), aliasing (dB re fundamental) and SINAD-ish noise for a steady sine segment."""
     n = len(x)
@@ -125,6 +132,19 @@ def analyze(out, sr, inp=None, meta=None):
         ic = click_events(i, sr)
         oc = click_events(mono, sr)
         new = [t for t in oc if not any(abs(t - u) < 0.01 for u in ic)]
+        # the input's own fade-in/out: a distorted onset is meant to sharpen
+        edges = (a0 / sr, a1 / sr)
+        new = [t for t in new if all(abs(t - e) > 0.04 for e in edges)]
+        # below ~150 Hz a clipped sweep is a square wave; its edges look like clicks
+        if meta.get("kind") == "sweep":
+            k = np.log(meta["f2"] / meta["f1"]) / meta["seconds"]
+            t150 = meta["active_start"] + np.log(150.0 / meta["f1"]) / k
+            w = int(0.05 * sr)
+
+            def edge_of_clipped_wave(t):
+                c = int(t * sr)
+                return t < t150 and distorted(i[max(0, c - w):c + w], mono[max(0, c - w):c + w])
+            new = [t for t in new if not edge_of_clipped_wave(t)]
         m["click_events"] = len(new)
         m["click_times"] = [round(t, 4) for t in new[:12]]
     else:

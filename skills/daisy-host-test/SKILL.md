@@ -86,7 +86,7 @@ After every change:
 - Remove debug taps, then run `./daisyrig lint MyPedal/MyPedal.ino`. It must report 0 lines.
 - Run a final `./daisyrig scope original.ino MyPedal.ino` and include its numbers in the hand-off.
 - The final file must compile with no sketch warnings: the report's "Compiler warnings in sketch: 0" (host `-Wall -Wextra`). With `--hw`, the arm-gcc warnings must also be 0.
-- Deliver the `.ino` itself, plus the before→after table.
+- Deliver two files: `Name.ino` and `Name.txt`. The `.txt` has controls, signal flow, how it works, upload steps, and a short test status. Give the before→after table, reports and renders only if asked.
 
 ## 6. What to tell the user
 

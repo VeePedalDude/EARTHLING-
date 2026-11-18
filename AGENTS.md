@@ -56,3 +56,4 @@ can see.
 - Keep three groups separate: **verified** (measured, with units), **inferred** (CPU estimate, analog behaviour), and **not fixed** (still audible, with times and settings).
 - Bisect causes, don't guess them: freeze one thing, re-run, halve.
 - Before delivery, `daisyrig lint FILE` must report 0 lines (no rig hooks left).
+- Deliver an effect as two files: `Name.ino` and `Name.txt`. The `.txt` covers controls, signal flow, how it works, upload steps, and a short test status. Keep test output and other artifacts out of the reply unless the user asks for them.
