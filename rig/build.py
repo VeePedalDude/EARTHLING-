@@ -201,6 +201,9 @@ def explain(err):
     for cls, alt in NOT_IN_DAISYDUINO.items():
         if re.search(rf"['‘]{cls}['’] (does not name a type|was not declared)", err):
             hints.append(f"{cls} is in current DaisySP but not in DaisyDuino's bundled copy: {alt}.")
+    m = re.search(r"['‘](?:\w+ )?(\w+)['’] redeclared as different kind of entity", err)
+    if m:
+        hints.append(f"'{m.group(1)}' clashes with an Arduino function of the same name: rename your variable.")
     if re.search(r"(daisy_seed|daisy_petal|daisy_pod)\.h: No such file", err) or "DaisySeed" in err:
         hints.append("That is libDaisy (Makefile/C++) code, not DaisyDuino: use DaisyHardware hw = DAISY.init(...).")
     return ("\n\nhint: " + "\nhint: ".join(hints)) if hints else ""

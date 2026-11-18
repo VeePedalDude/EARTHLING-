@@ -52,6 +52,20 @@ can see.
 - The pedal is mono: process `in[0]`, write `out[0]`, then copy it to `out[1]`.
 - Test with `--board terrarium`. Pins and sources are in `docs/TERRARIUM.md`.
 
+## 5c. Sketch layout (so a novice can tweak it)
+Every effect is one `.ino`, laid out top to bottom like this. `examples/effects/SimpleDrive` is the reference.
+1. **Header comment**: the controls (knob/switch → job) and a one-line signal flow with numbered stages.
+2. **TWEAK ZONE**: every number someone might want to change, grouped by stage, as named `const`s with a **unit and a safe range** in the comment.
+   - Times are in ms and frequencies in Hz. Convert to coefficients in code (`CoefFromMs`), so users never edit raw coefficients.
+   - No bare numbers in the DSP code below the zone.
+3. **PINS**: one block.
+4. **MODULES**: one small `struct` per stage in signal-flow order, each with `Init()` and `Process()`. No inheritance or templates.
+5. **CONTROLS**: knob → parameter mapping functions (`DriveTarget(k)` …) that apply the min/max/curve constants.
+6. **AUDIO**: the callback reads like the signal flow, with one numbered line per stage.
+7. **SETUP / LOOP**: `Init()` each module, and read knobs in `loop()`.
+
+Don't name globals after Arduino functions: `tone`, `random`, `map`, `delay`, `min`, `max`, `abs`, `round`, `bit`.
+
 ## 6. Report honestly
 - Keep three groups separate: **verified** (measured, with units), **inferred** (CPU estimate, analog behaviour), and **not fixed** (still audible, with times and settings).
 - Bisect causes, don't guess them: freeze one thing, re-run, halve.

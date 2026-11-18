@@ -12,6 +12,7 @@ report numbers.
 - **Think first.** State your assumptions (board, sample rate, pins). If a request has two readings, ask which one is meant.
 - **Define done as a number** before you edit, for example "clicks on sweep/sine_1k: 35 → 0".
 - **Write less.** Use the DaisySP bundled with DaisyDuino (no `daisysp.h` include, no standalone DaisySP; `OnePole`, `LadderFilter`, `Wavefolder`, `GranularPlayer` and `Soap` aren't in it) before writing your own DSP. No one-use abstractions. Deleting code counts as a fix.
+- **Tweakable layout.** For a new effect, follow AGENTS.md §5c: a TWEAK ZONE of named constants (units and safe ranges), one struct per stage, and a callback with one line per stage.
 - **Surgical changes.** Touch only what the fix needs. `daisyrig scope old new` must show 0 whitespace-only lines.
 
 ## 0. Get the rig

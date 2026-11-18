@@ -38,6 +38,14 @@ Rules:
 - Feedback below 1 or soft-clipped. No NaN at any knob position (watch divisions).
 - Float literals with f (0.5f). Smooth anything that sets a delay time.
 - Keep it short. Use DaisySP modules instead of writing your own.
+- Lay it out for tweaking:
+  - a header listing the controls and the signal flow
+  - a TWEAK ZONE of named constants (unit + safe range on each, times in ms, frequencies in Hz)
+  - one small struct per stage with Init()/Process(), in signal order
+  - knob-mapping functions
+  - a callback with one line per stage
+  Copy the layout of examples/effects/SimpleDrive/SimpleDrive.ino.
+- Don't name variables tone, random, map, delay, min or max (they clash with Arduino functions).
 Give me the complete .ino.
 ```
 
