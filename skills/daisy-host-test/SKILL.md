@@ -18,7 +18,7 @@ report numbers.
 ## 0. Get the rig
 
 ```bash
-git clone <this repo> daisy-host-rig && cd daisy-host-rig   # or use an existing checkout
+git clone https://github.com/VeePedalDude/EARTHLING-.git && cd EARTHLING-   # or use an existing checkout
 pip install -r requirements.txt --break-system-packages 2>/dev/null || true
 ./daisyrig setup          # once; ~30 s
 ./daisyrig setup --hw     # optional: real ARM compile (arduino-cli + STM32 core, large download)

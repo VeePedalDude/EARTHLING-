@@ -1,4 +1,9 @@
-# daisyrig: a host test rig for Arduino-IDE Daisy Seed sketches
+# EARTHLING: Daisy Seed effects builder
+
+Prompt guitar effects for the PedalPCB Terrarium, test them on your computer
+with **daisyrig**, then upload them from the Arduino IDE.
+
+## daisyrig: a host test rig for Arduino-IDE Daisy Seed sketches
 
 `daisyrig` compiles a DaisyDuino `.ino` sketch for your computer instead of the
 Daisy. It plays realistic guitar and test signals through the audio callback,
