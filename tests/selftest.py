@@ -52,6 +52,8 @@ def main():
     hint = B.explain("x.ino:2:10: fatal error: daisysp.h: No such file or directory\n"
                      "x.ino:3:1: error: 'OnePole' does not name a type")
     check("DaisyDuino.h" in hint and "fonepole" in hint, "daisysp.h include and OnePole explained")
+    check("rename" in B.explain("x.ino:2:6: error: ‘daisysp::Tone tone’ redeclared as different kind of entity"),
+          "Arduino name clash (tone) explained")
 
     print("scope (surgical-change check)")
     import subprocess
