@@ -33,7 +33,7 @@ void AudioCallback(float **in, float **out, size_t size) {
   for (size_t i = 0; i < size; i++) {
     float dry = in[0][i];
     if (bypass) {
-      out[0][i] = dry;                                   // BUG: out[1] never written
+      out[0][i] = dry;                                   // BUG on stereo hosts: out[1] never written
       continue;
     }
     size_t rp = (write_pos + MAX_DELAY - delay_samps) % MAX_DELAY;

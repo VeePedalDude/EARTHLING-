@@ -42,6 +42,16 @@ can see.
 - Use float literals with `f`. The sketch's code must build clean under `-Wall -Wextra -Wdouble-promotion -Wshadow`, and under arm-gcc with `--hw`.
 - No NaN/Inf at any knob position (the `min`/`max` presets). Feedback stays below 1, or is soft-clipped.
 
+## 5b. Terrarium sketches
+- Use `TerrariumDuino.h` as is:
+  - `Init()` in `setup()`
+  - `Poll()` in `loop()`
+  - `Process()` at the top of the callback
+  - `Output(dry, wet)` for every sample, which gives FS1 bypass with a 10 ms crossfade
+- Don't reimplement pins, debouncing or bypass in the sketch.
+- The pedal is mono: process `in[0]`, write `out[0]`, then copy it to `out[1]`.
+- Test with `--board terrarium`. Pins and sources are in `docs/TERRARIUM.md`.
+
 ## 6. Report honestly
 - Keep three groups separate: **verified** (measured, with units), **inferred** (CPU estimate, analog behaviour), and **not fixed** (still audible, with times and settings).
 - Bisect causes, don't guess them: freeze one thing, re-run, halve.

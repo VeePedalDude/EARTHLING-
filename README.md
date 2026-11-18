@@ -13,6 +13,22 @@ to get true flash and RAM numbers.
 ./daisyrig test path/to/MySketch --board terrarium
 ```
 
+### Building for the PedalPCB Terrarium
+
+The main target is the PedalPCB Terrarium, programmed from the Arduino IDE.
+The loop: describe an effect to an AI, test what it writes, and upload it once
+it passes.
+
+```
+./daisyrig new effects/MyFuzz          # template + TerrariumDuino.h (Arduino-ready folder)
+# prompt an AI with docs/PROMPTING.md, paste its .ino into effects/MyFuzz/
+./daisyrig test effects/MyFuzz --board terrarium --hw
+```
+
+- `terrarium/TerrariumDuino.h` is a single-file API for knobs, toggles, footswitches, LEDs and a bypass crossfade.
+- `docs/TERRARIUM.md` has the verified pinout and the Arduino IDE settings.
+- `docs/PROMPTING.md` has a copy-paste prompt and the fix loop.
+
 You get `REPORT.md` (verdict, findings, verified vs inferred numbers),
 `results.json`, and a folder of rendered WAVs to listen to.
 
@@ -57,6 +73,7 @@ daisyrig compare before.json after.json
 daisyrig hwcheck SKETCH                # real arm-gcc build: flash / RAM / ARM warnings
 daisyrig signals --out dir [--sr 48000]
 daisyrig lint FILE...                  # leftover rig hooks / host-only code before delivery
+daisyrig new effects/MyFx              # Terrarium sketch from the template
 daisyrig scope old.ino new.ino [--strict]   # diff size + whitespace-only churn (surgical-change check)
 ```
 
@@ -66,7 +83,9 @@ are generated automatically.
 
 Boards (`--board`) map names to Daisy pins for control scripts: `seed` (A0–A11,
 D0–D32), `terrarium` (POT1–6, SW1–4, FS1–2, LED1–2), `pod`, `petal`. These maps
-only name pins. Your sketch reads whatever pins it reads.
+only name pins. Your sketch reads whatever pins it reads. `terrarium` also turns
+on mono mode: only `in[0]` gets signal, only `out[0]` is measured, and leaving
+`out[1]` unwritten is not an error.
 
 ## What `test` does
 
@@ -139,10 +158,11 @@ Daisy Field hardware, and the Patch SM pin map.
 ```
 
 The buggy version comes back FAIL. UBSan flags index 48000 out of bounds (an
-off-by-one wrap). Turning the level knob to 0 produces NaN/Inf. In bypass,
-`out[1]` is never written. Serial is called inside the callback. A click
-appears at exactly t = 1.000 s, where the buffer wraps. The 188 KB buffer sits
-in SRAM. The fixed version has zero FAIL findings, the buffer is in SDRAM, the
+off-by-one wrap). Turning the level knob to 0 produces NaN/Inf. Serial is
+called inside the callback. A click appears at exactly t = 1.000 s, where the
+buffer wraps. The 188 KB buffer sits in SRAM. On a stereo `--board seed`, the
+rig also flags `out[1]` going unwritten in bypass. On the mono Terrarium that
+is fine. The fixed version has zero FAIL findings, the buffer is in SDRAM, the
 sanitizers are clean, and sweeping every pot produces zero clicks.
 
 One WARN remains on the fixed version, and it is real: under the extreme

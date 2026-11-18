@@ -53,6 +53,8 @@ def cmd_run(a):
         extra += ["--adc-noise", str(a.adc_noise)]
     if a.ftz:
         extra += ["--ftz"]
+    if BOARDS[a.board].get("mono"):
+        extra += ["--mono"]
     r = T.run_one(a.binary, a.input, a.output, events, extra, logs=str(Path(a.output).with_suffix("")))
     if r["stderr"]:
         print(r["stderr"], file=sys.stderr)
@@ -116,6 +118,24 @@ def cmd_compare(a):
 
 
 DEBUG_PAT = re.compile(r"rig_probe|rig_event|DAISYRIG|std::cout|std::cerr|fprintf\s*\(\s*stderr|#include\s*<iostream>")
+
+
+def cmd_new(a):
+    """Start a Terrarium effect: <name>/<name>.ino + TerrariumDuino.h, ready for the Arduino IDE."""
+    import shutil
+    name = Path(a.name).name
+    if not re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", name):
+        sys.exit("name must be letters, digits and _ (Arduino sketch rules)")
+    d = Path(a.name)
+    if d.exists():
+        sys.exit(f"{d} already exists")
+    d.mkdir(parents=True)
+    src = B.ROOT / "terrarium"
+    tmpl = (src / "TerrariumTemplate" / "TerrariumTemplate.ino").read_text().replace("TerrariumTemplate", name)
+    (d / f"{name}.ino").write_text(tmpl)
+    shutil.copy(src / "TerrariumDuino.h", d / "TerrariumDuino.h")
+    print(f"created {d}/{name}.ino and {d}/TerrariumDuino.h")
+    print(f"test it:  ./daisyrig test {d} --board terrarium")
 
 
 def cmd_scope(a):
@@ -218,6 +238,10 @@ def main(argv=None):
     s.add_argument("before")
     s.add_argument("after")
     s.set_defaults(fn=cmd_compare)
+
+    s = sub.add_parser("new", help="start a Terrarium effect from the template")
+    s.add_argument("name", help="sketch folder, e.g. effects/MyFuzz")
+    s.set_defaults(fn=cmd_new)
 
     s = sub.add_parser("scope", help="diff size + whitespace-only churn between two versions")
     s.add_argument("old")

@@ -11,9 +11,11 @@ BOARDS = {
         "active_low": [],
         "encoder": None,
     },
-    # PedalPCB Terrarium (Arduino pin numbers, from the PedalPCB Arduino template
-    # and terrarium.h's mapping onto the Petal switch pins).
+    # PedalPCB Terrarium. Sources: PedalPCB/Terrarium terrarium.h (indices into the
+    # Petal switch/knob tables), schult/terrarium-test Terrarium.cpp (direct Seed pins).
+    # Audio is mono: Seed audio in 1 (in[0]) -> audio out 1 (out[0]).
     "terrarium": {
+        "mono": True,
         "names": {"POT1": 16, "POT2": 17, "POT3": 18, "POT4": 19, "POT5": 20, "POT6": 21,
                   "SW1": 10, "SW2": 9, "SW3": 8, "SW4": 7,
                   "FS1": 25, "FS2": 26, "LED1": 22, "LED2": 23},

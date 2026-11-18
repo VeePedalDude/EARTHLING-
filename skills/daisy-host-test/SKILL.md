@@ -24,7 +24,10 @@ pip install -r requirements.txt --break-system-packages 2>/dev/null || true
 ```
 
 Put the user's sketch in its own folder, named like the `.ino`
-(`MyPedal/MyPedal.ino`). Work on a copy, never the original upload.
+(`MyPedal/MyPedal.ino`). Work on a copy, never the original upload. For a
+new Terrarium effect, start with `./daisyrig new MyPedal`, which creates the
+template plus `TerrariumDuino.h`. Pins are in `docs/TERRARIUM.md`. The
+Terrarium is mono (`in[0]` → `out[0]`).
 
 ## 1. Baseline before touching anything
 

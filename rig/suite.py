@@ -138,13 +138,16 @@ def run_suite(sketch, out, board="seed", ctls=None, full_signals=False, asan=Tru
         rd.mkdir(exist_ok=True)
         jobs_list.append(("adc_noise", s, evf, rd / f"{s}.wav", ("--adc-noise", "2")))
 
+    mono = BOARDS[board].get("mono", False)
+    base_extra = ("--mono",) if mono else ()
+
     def do(job):
         cname, s, evf, wav, extra = job
-        r = run_one(b["bin"], sdir / sigs[s]["file"], wav, evf, extra, logs=str(wav)[:-4])
+        r = run_one(b["bin"], sdir / sigs[s]["file"], wav, evf, base_extra + tuple(extra), logs=str(wav)[:-4])
         if Path(wav).exists() and r["rc"] == 0:
             o, sr = S.read_wav(wav)
             i, _ = S.read_wav(sdir / sigs[s]["file"])
-            r["metrics"] = A.analyze(o, sr, i, sigs[s])
+            r["metrics"] = A.analyze(o[:, :1] if mono else o, sr, i, sigs[s])
         return {"ctl": cname, "signal": s, **r}
 
     with ThreadPoolExecutor(max_workers=jobs or os.cpu_count() or 4) as ex:
@@ -155,12 +158,14 @@ def run_suite(sketch, out, board="seed", ctls=None, full_signals=False, asan=Tru
     timing = []
     for s in ("chord_strum", "pink_noise"):
         evf = evdir / f"noon__{s}.txt"
-        r = run_one(b["bin"], sdir / sigs[s]["file"], out / f"timing_{s}.wav", evf)
+        # --ftz: x86 denormals are ~40x slower and would swamp the estimate
+        r = run_one(b["bin"], sdir / sigs[s]["file"], out / f"timing_{s}.wav", evf, base_extra + ("--ftz",))
         timing.append(r["report"].get("host_load_p99_pct", 0.0))
     host_p99 = max(timing) if timing else 0.0
     res["cpu"] = {"host_load_p99_pct": host_p99, "m7_factor": M7_FACTOR,
                   "m7_estimate_pct": round(host_p99 * M7_FACTOR, 1),
-                  "note": "M7 figure = host p99 x DAISYRIG_M7_FACTOR (uncalibrated; calibrate against CpuLoadMeter on hardware)"}
+                  "note": "M7 figure = host p99 (denormals flushed) x DAISYRIG_M7_FACTOR "
+                          "(uncalibrated; calibrate against CpuLoadMeter on hardware)"}
     if host_p99 * M7_FACTOR > 70:
         find("WARN", f"estimated Daisy CPU ~{host_p99 * M7_FACTOR:.0f}% (inferred, see cpu.note)")
 
@@ -168,7 +173,7 @@ def run_suite(sketch, out, board="seed", ctls=None, full_signals=False, asan=Tru
     det = [r for r in runs if r["ctl"] == "noon" and r["signal"] == "pluck_low_e"]
     if det:
         w2 = out / "determinism.wav"
-        run_one(b["bin"], sdir / sigs["pluck_low_e"]["file"], w2, evdir / "noon__pluck_low_e.txt")
+        run_one(b["bin"], sdir / sigs["pluck_low_e"]["file"], w2, evdir / "noon__pluck_low_e.txt", base_extra)
         a, _ = S.read_wav(out / "renders" / "noon" / "pluck_low_e.wav")
         c, _ = S.read_wav(w2)
         nul = A.wav_null(a, c)
@@ -186,7 +191,7 @@ def run_suite(sketch, out, board="seed", ctls=None, full_signals=False, asan=Tru
                     evf = evdir / f"{ctl}__{s}.txt"
                     if not evf.exists():
                         continue
-                    r = run_one(ba["bin"], sdir / sigs[s]["file"], out / "asan.wav", evf)
+                    r = run_one(ba["bin"], sdir / sigs[s]["file"], out / "asan.wav", evf, base_extra)
                     e = sanitizer_errors(r["stderr"])
                     if e or r["rc"] not in (0,):
                         errs.append({"signal": s, "ctl": ctl, "rc": r["rc"], "errors": e or [r["stderr"][-500:]]})
@@ -277,8 +282,9 @@ def compare(old, new):
 def report_md(res):
     L = [f"# daisyrig report: `{Path(res['sketch']).name}`", ""]
     cfg = res.get("config", {})
+    mono = BOARDS.get(res["board"], {}).get("mono")
     L.append(f"Board map **{res['board']}** · {cfg.get('samplerate', 0):.0f} Hz · block {cfg.get('blocksize')} · "
-             f"{cfg.get('channels')} ch")
+             + ("mono (in[0] → out[0])" if mono else f"{cfg.get('channels')} ch"))
     L.append("")
     order = {"FAIL": 0, "WARN": 1, "INFO": 2}
     fs = sorted(res["findings"], key=lambda f: order.get(f["severity"], 3))

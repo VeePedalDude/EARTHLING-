@@ -68,7 +68,12 @@ def main():
     msgs = " | ".join(f["msg"] for f in rb["findings"])
     check(any("out of bounds" in m for e in rb["sanitizers"] for m in e["errors"]), "UBSan catches index 48000")
     check("NaN" in msgs, "NaN/Inf at POT5 = 0")
-    check("unwritten" in msgs, "out[1] left unwritten in bypass")
+    check("unwritten" not in msgs, "mono Terrarium: out[1] unwritten is not an error")
+    ctl = tmp / "fs_raw.ctl"
+    ctl.write_text("at 0.5 set D25 0\nat 0.56 set D25 1\n")   # raw FS1 tap on a stereo Seed
+    rs = T.run_suite(ROOT / "examples/sketches/TremDelayBuggy", tmp / "buggy_seed", board="seed",
+                     ctls=["noon"], ctl_files=[str(ctl)], asan=False)
+    check("unwritten" in " | ".join(f["msg"] for f in rs["findings"]), "stereo Seed: out[1] unwritten in bypass")
     check("Serial output inside the audio callback" in msgs, "Serial in callback")
     noon_sine = next(r for r in rb["runs"] if r["ctl"] == "noon" and r["signal"] == "sine_1k")
     check(1.0 in noon_sine["metrics"]["click_times"], "click at buffer wrap (t = 1.000 s)")
@@ -83,6 +88,16 @@ def main():
     check(not rf["sanitizers"], "sanitizers clean")
     sweep_sine = next(r for r in rf["runs"] if r["ctl"] == "sweep" and r["signal"] == "sine_1k")
     check(sweep_sine["metrics"]["click_events"] == 0, "no zipper clicks while sweeping every pot")
+
+    print("Terrarium template (TerrariumDuino.h, mono)")
+    hdr = (ROOT / "terrarium/TerrariumDuino.h").read_text()
+    check(hdr == (ROOT / "terrarium/TerrariumTemplate/TerrariumDuino.h").read_text(), "template header copy in sync")
+    rt = T.run_suite(ROOT / "terrarium/TerrariumTemplate", tmp / "tmpl", board="terrarium",
+                     ctls=["noon", "min", "max", "sweep", "footswitch", "toggles"])
+    check(not [f for f in rt["findings"] if f["severity"] == "FAIL"], "template: no FAIL")
+    fs = next(r for r in rt["runs"] if r["ctl"] == "footswitch" and r["signal"] == "sine_1k")
+    check(fs["metrics"]["click_events"] == 0, "FS1 bypass crossfade: no clicks")
+    check(rt["cpu"]["m7_estimate_pct"] < 20, f"CPU estimate sane with FTZ ({rt['cpu']['m7_estimate_pct']}%)")
 
     print("MIDI injection (DaisyDuino Pod/Midi example)")
     mid = ROOT / "third_party/DaisyDuino/examples/Pod/Midi"

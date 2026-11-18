@@ -53,6 +53,7 @@ struct Sim {
   bool audio_on = false;
   double next_block_t = 0.0;
   int nch = 2;
+  bool mono = false;   // Terrarium-style: only in[0] is wired, only out[0] reaches the jack
   WavData in, out;
   size_t frame = 0, total_frames = 0;
   bool have_input = false;
@@ -136,7 +137,9 @@ void run_block() {
     for (size_t i = 0; i < bs; i++) {
       size_t fi = S.frame + i;
       float v = ob[c][i];
-      if (v == kSentinel) {
+      if (v == kSentinel && S.mono && c > 0) {
+        v = 0.f;  // unconnected channel: not writing it is fine
+      } else if (v == kSentinel) {
         S.unwritten++;
         if (S.first_unwritten_t < 0) S.first_unwritten_t = tblock;
         v = 0.f;
@@ -474,7 +477,8 @@ static void usage() {
   std::fprintf(stderr,
                "usage: <sketch-bin> [--in in.wav] [--out out.wav] [--events ev.txt] [--seconds S]\n"
                "       [--block N] [--loops-per-block N] [--adc-noise LSB] [--ftz] [--report r.json]\n"
-               "       [--logs prefix] [--sdram-fill random|zero] [--config-only]\n"
+               "       [--logs prefix] [--sdram-fill random|zero] [--mono] [--config-only]\n"
+               "--mono: only in[0]/out[0] are wired (PedalPCB Terrarium); in[1] is silent, out[1] ignored.\n"
                "SDRAM (DSY_SDRAM_BSS) starts as random bytes, like hardware, unless --sdram-fill zero.\n");
 }
 
@@ -487,7 +491,8 @@ static void write_report(FILE *f, double wall_s) {
   auto pct = [&](double p) { return ns.empty() ? 0.0 : ns[std::min(ns.size() - 1, (size_t)(p * ns.size()))]; };
   double budget_ns = 1e9 * S.block / S.sr;
   std::fprintf(f, "{\n");
-  std::fprintf(f, "  \"samplerate\": %.0f,\n  \"blocksize\": %zu,\n  \"channels\": %d,\n", S.sr, S.block, S.nch);
+  std::fprintf(f, "  \"samplerate\": %.0f,\n  \"blocksize\": %zu,\n  \"channels\": %d,\n  \"mono\": %s,\n", S.sr,
+               S.block, S.nch, S.mono ? "true" : "false");
   std::fprintf(f, "  \"audio_started\": %s,\n  \"callback_type\": \"%s\",\n", (S.cb || S.icb) ? "true" : "false",
                S.cb ? "non-interleaved" : (S.icb ? "interleaved" : "none"));
   std::fprintf(f, "  \"blocks\": %ld,\n  \"sim_seconds\": %.4f,\n  \"wall_seconds\": %.3f,\n", S.blocks, S.clock, wall_s);
@@ -536,6 +541,7 @@ int main(int argc, char **argv) {
     else if (a == "--report") report_path = next();
     else if (a == "--logs") logs = next();
     else if (a == "--ftz") ftz = true;
+    else if (a == "--mono") S.mono = true;
     else if (a == "--sdram-fill") sdram_mode = next();
     else if (a == "--config-only") config_only = true;
     else { usage(); return 2; }
@@ -591,7 +597,8 @@ int main(int argc, char **argv) {
       }
       S.in.sr = w.sr;
       S.in.ch.assign(S.nch, {});
-      for (int c = 0; c < S.nch; c++) S.in.ch[c] = w.ch[std::min(c, w.channels - 1)];
+      for (int c = 0; c < S.nch; c++)
+        S.in.ch[c] = (S.mono && c > 0) ? std::vector<float>(w.frames(), 0.f) : w.ch[std::min(c, w.channels - 1)];
       S.have_input = true;
       S.total_frames = w.frames();
     } else {
